@@ -12,15 +12,57 @@
 
 ---
 
-## 📸 Workflow Architecture & Lifecycle Infographic
+## 📸 Workflow Architecture & Lifecycle
 
-The infographic and flowchart below illustrate the complete lifecycle of the software—from initial configuration to dynamic decryption, SDK generation, and recurring patch updates:
+The interactive diagram below illustrates the complete lifecycle of the software—from initial configuration to dynamic decryption, SDK generation, and recurring patch updates:
+
+```mermaid
+flowchart TD
+    subgraph S1 [Phase 1: Launch & Environment Setup]
+        A["🚀 Execute Valorant-Dumper.exe"] --> B["⚙️ Load Config & Offsets from gui_config.json"]
+    end
+
+    subgraph S2 [Phase 2: Offset Configuration & Decryption Verification]
+        B --> C{"Is Current Game Patch Supported?"}
+        C -- "Yes (Offsets Valid)" --> D["🔨 Compile Dumper-7.dll via MSBuild"]
+        C -- "No (Game Received New Patch)" --> E["🔍 Extract New Offsets via IDA Extractor Tab"]
+        E --> F["💾 Save Offsets & Sync to C++ Generator Code"]
+        F --> D
+    end
+
+    subgraph S3 [Phase 3: Safe Injection & SDK Extraction]
+        D --> G["🎮 Launch Target Game: VALORANT"]
+        G --> H["💉 Inject Dumper-7.dll with 64-bit Pointer Safety"]
+        H --> I["📂 Parse FUObjectArray & Reconstruct Complete C++ SDK Headers"]
+    end
+
+    subgraph S4 [Phase 4: Maintenance & Patch Lifecycle]
+        I --> J["🔄 Track Future Engine Patches & Iterate Pipeline"]
+    end
+
+    style S1 fill:#131A29,stroke:#00F5D4,stroke-width:2px,color:#fff
+    style S2 fill:#172236,stroke:#FF4655,stroke-width:2px,color:#fff
+    style S3 fill:#111726,stroke:#10B981,stroke-width:2px,color:#fff
+    style S4 fill:#1F293D,stroke:#F59E0B,stroke-width:2px,color:#fff
+```
+
+---
+
+## 🎥 Video Tutorial & Demonstration
+
+Watch the complete operational video walkthrough and feature demonstration of the **Valorant SDK Dumper Suite** in action:
 
 <div align="center">
 
-![Workflow Guide](assets/workflow_guide.png)
+[![Watch Video on Streamable](https://img.shields.io/badge/▶%20Watch%20Tutorial%20Video-Streamable%20(Full%20HD)-FF4655?style=for-the-badge&logo=googleplay&logoColor=white)](https://streamable.com/jsm3ph)
+
+<br/><br/>
+
+> 🎬 **Direct Link:** **[https://streamable.com/jsm3ph](https://streamable.com/jsm3ph)**
 
 </div>
+
+---
 
 ```mermaid
 flowchart TD
