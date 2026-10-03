@@ -1,4 +1,4 @@
-# 🛡️ Valorant SDK Dumper Pro: Comprehensive Project Guide
+# 🛡️ Valorant SDK Dumper 
 ### Software Architecture, Programming Language Stack, Operational Manual & Patch Updating
 
 <div align="center">
