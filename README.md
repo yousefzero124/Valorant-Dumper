@@ -64,37 +64,6 @@ Watch the complete operational video walkthrough and feature demonstration of th
 
 ---
 
-```mermaid
-flowchart TD
-    subgraph S1 [Phase 1: Launch & Environment Setup]
-        A["🚀 Execute Valorant-Dumper.exe"] --> B["⚙️ Load Config & Offsets from gui_config.json"]
-    end
-
-    subgraph S2 [Phase 2: Offset Configuration & Decryption Verification]
-        B --> C{"Is Current Game Patch Supported?"}
-        C -- "Yes (Offsets Valid)" --> D["🔨 Compile Dumper-7.dll via MSBuild"]
-        C -- "No (Game Received New Patch)" --> E["🔍 Extract New Offsets via IDA Extractor Tab"]
-        E --> F["💾 Save Offsets & Sync to C++ Generator Code"]
-        F --> D
-    end
-
-    subgraph S3 [Phase 3: Safe Injection & SDK Extraction]
-        D --> G["🎮 Launch Target Game: VALORANT"]
-        G --> H["💉 Inject Dumper-7.dll with 64-bit Pointer Safety"]
-        H --> I["📂 Parse FUObjectArray & Reconstruct Complete C++ SDK Headers"]
-    end
-
-    subgraph S4 [Phase 4: Maintenance & Patch Lifecycle]
-        I --> J["🔄 Track Future Engine Patches & Iterate Pipeline"]
-    end
-
-    style S1 fill:#131A29,stroke:#00F5D4,stroke-width:2px,color:#fff
-    style S2 fill:#172236,stroke:#FF4655,stroke-width:2px,color:#fff
-    style S3 fill:#111726,stroke:#10B981,stroke-width:2px,color:#fff
-    style S4 fill:#1F293D,stroke:#F59E0B,stroke-width:2px,color:#fff
-```
-
----
 
 ## 💻 Technology Stack & Programming Languages
 
@@ -228,27 +197,136 @@ sequenceDiagram
     Game-->>Dev: Fully Reconstructed SDK Generated!
 ```
 
-### Detailed Steps:
+### 🎯 Memory Signatures (AOB Patterns) for IDA Pro
 
-1. **Step 1: Obtain a Clean Memory Dump**
-   - Dump the unpacked `VALORANT-Win64-Shipping.exe` from protected memory using your preferred memory dumper.
+To immediately locate the required decryption routines and offsets without manual cross-reference searching, use the following Byte Signatures (`Alt + B` in IDA Pro):
 
-2. **Step 2: Load into IDA Pro (x64)**
-   - Open the dumped binary in IDA Pro x64 and let the initial auto-analysis finish (`AU: idle`).
+| Target Component | Pattern Signature (AOB / Sequence of Bytes) | Extracted Offsets |
+| :--- | :--- | :--- |
+| **`GWorld` (`UWorld*`)** | `48 8D 04 CA 4C 39 08 74 ? 8B 48 ? 83 F9 ? 75 ? EB` | `GWorldOffset` |
+| **`GObject` (`FUObjectArray`)** | `41 2B D0 49 BC ? ? ? ? ? ? ? ? 0F 85 ? ? ? ? 8D 4B` | `TableOffset`, `KeyOffset` |
 
-3. **Step 3: Locate the Decryption Routine**
-   - Search for string references to `"SeamlessTravel"` or navigate to `FSeamlessTravelHandler::Tick`.
-   - Inspect the sub-routine responsible for accessing `FUObjectArray`.
-   - Press `F5` to generate Hex-Rays C++ pseudocode.
+---
 
-4. **Step 4: Extract Offsets via GUI Extractor**
-   - Copy the decompiled code block containing the 7-case `switch` statement and global table reference.
-   - Switch to **Valorant-Dumper Pro**, open the **"Extractor"** tab, and paste the code.
-   - Click **"Extract Offsets"** followed by **"Apply to Project"**.
+### 📋 Detailed Step-by-Step Walkthrough:
 
-5. **Step 5: Recompile and Dump**
-   - Navigate to the **"Build"** tab and click **"Build DLL"** (or execute [`Build-Dumper-7.bat`](file:///c:/Users/Zero0/Downloads/Valorant-Dumper/Build-Dumper-7.bat)).
-   - Your updated [`Dumper-7.dll`](file:///c:/Users/Zero0/Downloads/Valorant-Dumper/Dumper-7.dll) is now ready to inject into the new game version!
+#### 1. Step 1: Obtain a Clean Memory Dump
+- Dump the unpacked `VALORANT-Win64-Shipping.exe` from protected memory using your preferred memory dumper (ensuring valid PE headers, `.text`, `.rdata`, and `.data` sections).
+
+#### 2. Step 2: Load into IDA Pro (x64)
+- Open the dumped binary in IDA Pro x64.
+- Select `Portable Executable (PE) [pe64.dll]` and wait until the status bar shows **`AU: idle`**.
+- Default Image Base in IDA is typically `0x140000000`.
+
+---
+
+#### 3. Step 3: Locate & Extract `GObject` (`TableOffset` & `KeyOffset`)
+
+`FUObjectArray` uses a dynamic 7-case mathematical decryption routine. To locate it and extract both offsets:
+
+1. **Search with Pattern Signature:**
+   - In IDA Pro, press **`Alt + B`** (Search -> Sequence of bytes...).
+   - Paste the GObject signature:
+     ```text
+     41 2B D0 49 BC ? ? ? ? ? ? ? ? 0F 85 ? ? ? ? 8D 4B
+     ```
+   *(Alternative: Search for the 64-bit magic multiplication constant in little-endian: `1D DD 6C 4F 91 F4 45 25`)*
+2. **Decompile with Hex-Rays (`F5`):**
+   - Press **`F5`** to decompile the routine into C pseudocode.
+   - You will see the modulo 7 (`% 7`) operation and the pointer array access as shown below:
+
+<div align="center">
+
+![Valorant GObject Table & Key Offsets in IDA Pro](assets/ida/Gobject.png)
+
+</div>
+
+```c
+v127 = 0x2545F4914F6CDD1DLL
+  * ((unsigned int)qword_14D3E71B8 ^ (unsigned int)((_DWORD)qword_14D3E71B8 << 25) ^ (((unsigned int)qword_14D3E71B8 ^ ((unsigned __int64)(unsigned int)qword_14D3E71B8 >> 15)) >> 12))
+  % 7;
+v128 = *((_QWORD *)&xmmword_14D3E7180 + v127);
+v129 = (0x2545F4914F6CDD1DLL
+  * ((unsigned int)qword_14D3E71B8 ^ (unsigned int)((_DWORD)qword_14D3E71B8 << 25) ^ (((unsigned int)qword_14D3E71B8 ^ ((unsigned __int64)(unsigned int)qword_14D3E71B8 >> 15)) >> 12))) >> 32;
+v130 = (unsigned int)v127 % 7;
+if ( (unsigned int)v127 % 7 )
+```
+
+3. **Identifying the Target Variables:**
+   - **`KeyOffset`:** Look at the variable being shifted and multiplied: `qword_14D3E71B8` (or `dword_...`).
+   - **`TableOffset`:** Look at the pointer array base being indexed: `xmmword_14D3E7180`.
+
+4. **Calculating Relative Offsets:**
+   $$\text{Relative Offset} = \text{Virtual Address (IDA)} - \text{Image Base (0x140000000)}$$
+
+   | Field | IDA Virtual Address | Calculation | Extracted Relative Offset |
+   | :--- | :--- | :--- | :--- |
+   | **`TableOffset`** | `0x14D3E7180` | `0x14D3E7180 - 0x140000000` | **`0xD3E7180`** |
+   | **`KeyOffset`** | `0x14D3E71B8` | `0x14D3E71B8 - 0x140000000` | **`0xD3E71B8`** |
+
+> [!TIP]
+> **Automatic Extraction:** You don't have to calculate this manually! Simply copy this decompiled C block, switch to the **"Extractor"** tab in [`Valorant-Dumper.exe`](file:///c:/Users/Zero0/Downloads/Valorant-Dumper/Valorant-Dumper.exe), paste the code, and click **"Extract Offsets"**.
+
+---
+
+#### 4. Step 4: Locate & Extract `GWorld` (`GWorldOffset`)
+
+`GWorld` holds the root `UWorld*` container representing the active map and game actors:
+
+1. **Search with Pattern Signature:**
+   - In IDA Pro, press **`Alt + B`** (Search -> Sequence of bytes...).
+   - Paste the GWorld signature:
+     ```text
+     48 8D 04 CA 4C 39 08 74 ? 8B 48 ? 83 F9 ? 75 ? EB
+     ```
+2. **Decompile with Hex-Rays (`F5`):**
+   - Press **`F5`** to view the decompiled loop responsible for world context enumeration:
+
+<div align="center">
+
+![Valorant GWorld Pointer in IDA Pro](assets/ida/Gworld.png)
+
+</div>
+
+```c
+while ( 1 )
+{
+  result = qword_14D35FE30 + 24LL * v12;
+  if ( *(_QWORD *)result == v10 )
+    break;
+  v12 = *(_DWORD *)(result + 16);
+  if ( v12 == -1 )
+    return result;
+}
+```
+
+3. **Identifying the Target Variable:**
+   - Look at the base pointer in the iteration: `qword_14D35FE30`.
+
+4. **Calculating Relative Offset:**
+   $$\text{GWorldOffset} = \text{Virtual Address (IDA)} - \text{Image Base (0x140000000)}$$
+
+   | Field | IDA Virtual Address | Calculation | Extracted Relative Offset |
+   | :--- | :--- | :--- | :--- |
+   | **`GWorldOffset`** | `0x14D35FE30` | `0x14D35FE30 - 0x140000000` | **`0xD35FE30`** |
+
+---
+
+#### 5. Step 5: Apply Offsets to Project
+1. **Via GUI (Easiest):**
+   - Go to the **"Offsets"** tab in [`Valorant-Dumper.exe`](file:///c:/Users/Zero0/Downloads/Valorant-Dumper/Valorant-Dumper.exe).
+   - Enter `TableOffset`, `KeyOffset`, and `GWorldOffset`.
+   - Click **"Apply & Save Offsets"** (automatically writes to [`gui_config.json`](file:///c:/Users/Zero0/Downloads/Valorant-Dumper/gui_config.json) and synchronizes C++ generator code).
+2. **Via Source Code:**
+   - Verify offsets in [`Generator.cpp`](file:///c:/Users/Zero0/Downloads/Valorant-Dumper/Dumper-7-7.0.1/Dumper/Generator/Private/Generators/Generator.cpp) inside `Generator::InitEngineCore()`.
+
+---
+
+#### 6. Step 6: Recompile & Dump
+1. Go to the **"Build"** tab and click **"Build Dumper DLL"** (or run [`Build-Dumper-7.bat`](file:///c:/Users/Zero0/Downloads/Valorant-Dumper/Build-Dumper-7.bat)).
+2. Launch the game, enter **The Range** map, and click **"Quick Dump Game"** (or use the **"Injector"** tab).
+3. Check the generated SDK in the output directory!
+
 
 ---
 
