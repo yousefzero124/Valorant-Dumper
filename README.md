@@ -1,4 +1,4 @@
-# 🛡️ Valorant SDK Dumper 
+# 🛡️ Valorant SDK Dumper (Updated To Latest Patch)
 ### Software Architecture, Programming Language Stack, Operational Manual & Patch Updating
 
 <div align="center">
