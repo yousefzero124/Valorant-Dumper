@@ -1,4 +1,4 @@
-# 🛡️ Valorant SDK Dumper (Updated To Latest Patch 13.08)
+# 🛡️ Valorant Dumper (Updated To Latest Patch 13.08)
 ### Software Architecture, Programming Language Stack, Operational Manual & Patch Updating
 
 <div align="center">
